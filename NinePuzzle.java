@@ -209,33 +209,44 @@ static class Graph {
     public static final int col = 3;
 
     private int vertices;
-    private List<Integer>[] graph;
+    private ArrayList<ArrayList<Integer>> graph;
+
     public Graph(int v) { 
       vertices = v;
+      graph = new ArrayList<ArrayList<Integer>>(v);
+
     }
 
     public int[] adjacencyList(int v) {
-      assert v>0&&v<vertices : "Vertex not in graph.";
-      List<Integer> list = graph[new Integer(v)];
-      int [] ret = new int[list.size()];
+      assert (v>0)&&(v<vertices) : "Vertex not in graph.";
+      ArrayList<Integer> alist = graph.get(v);
+      
+      int [] ret = new int[alist.size()];
       for (int i = 0; i < ret.length; i++) {
-        ret[i] = list.get(i).intValue();
+        ret[i] = alist.get(i).intValue();
       }
+      assert ret.length < vertices : "More vertices in adjacency list then reasonable. Probably duplicates.";
       return ret;
+
     }
 
     // returns false if edge already exists
     public boolean addEdge(int rv1, int rv2) { // the r is for raw
+      assert rv1 != rv2 : "adding and edge between a vertex and itself";
+      assert (rv1 < vertices) && (rv2 < vertices) : "Paranioa is kicking in.";
       boolean av1 = false;
       boolean av2 = false;
       Integer v1 = new Integer(rv1);
       Integer v2 = new Integer(rv2);
-      if (!graph[v1].contains(v2)) {
-        graph[v1].add(v2);
+
+      assert (graph.get(v1) != null) || (graph.get(v2) != null) : "Classic example of defensive programming.";
+
+      if (!graph.get(rv1).contains(v2)) {
+        graph.get(rv1).add(v2);
         av2 = true;
       }
-      if (!graph[v2].contains(v1)) {
-        graph[v1].add(v1);
+      if (!graph.get(rv2).contains(v1)) {
+        graph.get(rv2).add(v1);
         av1 = true;
       }
       assert (av1&&av2) || !(av1||av2) : "Tried to add vertices " + v1 + " and " + v2;
