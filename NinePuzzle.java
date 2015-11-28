@@ -9,8 +9,9 @@
     7 8 0
 */   
 
-import java.util.Scanner;
+import java.util.*;
 import java.io.File;
+import java.lang.Integer;
 
 public class NinePuzzle{
 
@@ -33,11 +34,10 @@ public class NinePuzzle{
 	  int b = getIndexFromBoard(B);
     Graph g = BuildNinePuzzle();
     boolean[] visited = new boolean[NUM_BOARDS]; // default initialized to false. Good job Java
-    int[] yettovisit = new int[NUM_BOARDS]; // should only need NUM_BOARDS but luckily the program will crash otherwise	
+    Queue<Integer> yettovisit = new LinkedList<Integer>();
     int[] nodeTo = new int[NUM_BOARDS];
 
     for (int i = 0; i < NUM_BOARDS; i++) { // two initializations for the price of one!
-      yettovisit[i] = -1;
       nodeTo[i] = -1;
     }
 
@@ -46,7 +46,8 @@ public class NinePuzzle{
 	}
 
 
-  public static boolean BFS(int vertex, Graph g, boolean[] visited, int[] yettovisit, int[] nodeTo) {
+  public static boolean BFS(int vertex, Graph g, boolean[] visited, Queue<Integer> yettovisit, int[] nodeTo) {
+    assert visited[vertex] == false : "Already visited vertex " + vertex;
     visited[vertex] = true;
 
     // Reminder: Be lazy! Check to make sure you're done before you get started!
@@ -60,32 +61,20 @@ public class NinePuzzle{
       return true;
     }
 
-    int[] adjlist = g.adjacencyList(vertex);
 
     // mark adjacent vertices as vertices we have to visit if we havent visited them yet
-    for (int i = 0; i < yettovisit.length; i++) {
-      for (int j = 0; j < adjlist.length; j++) {
-        if (yettovisit[i] == -1 && visited[j] == false) // if program crashed due to Index_Out_Of_Range, this is probably your culprit
-          yettovisit[i] = j;  
-      }
+    for (int i : g.adjacencyList(vertex)) {
+      yettovisit.add(i);
     }
 
+    // if there are no more nodes to visit, search is over with a negative result
+    if (yettovisit.peek() == null) return false;
+
     // pop the first element from queue
-    int next = yettovisit[0];
+    int next = yettovisit.remove().intValue();
     
     // mark our path the the next node
     nodeTo[next] = vertex;
-
-    // shift all elements down one
-    for (int i = 0; i < (yettovisit.length - 1); i++) {
-      yettovisit[i] = yettovisit[i + 1];
-    }
-
-    // make sure the end element is empty
-    yettovisit[yettovisit.length - 1] = -1;
-
-    // if there are no more nodes to visit, search is over with a negative result
-    if (next == -1) return false;
 
     // visit the next available node (and back down the rabbit hole we go)
     return BFS(next, g, visited, yettovisit, nodeTo);
@@ -219,51 +208,41 @@ static class Graph {
     public static final int row = 3;
     public static final int col = 3;
 
-    private int[][] graph; // adjacency list representation
     private int vertices;
-    public int numVertices() { return vertices; }
+    private List<Integer>[] graph;
     public Graph(int v) { 
       vertices = v;
-      graph = new int[vertices][vertices]; 
-      for (int i = 0; i < vertices; i++) {
-        for (int j = 0; j < vertices; j++) {
-          graph[i][j] = -1; // initialize all edges to zero
-        }
-      }
     }
 
     public int[] adjacencyList(int v) {
-      int[] ret = new int[vertices];
+      assert v>0&&v<vertices : "Vertex not in graph.";
+      List<Integer> list = graph[new Integer(v)];
+      int [] ret = new int[list.size()];
       for (int i = 0; i < ret.length; i++) {
-        ret[i] = graph[v][i];
+        ret[i] = list.get(i).intValue();
       }
       return ret;
     }
 
     // returns false if edge already exists
-    public boolean addEdge(int v1, int v2) {
-      boolean addedv1 = false;
-      boolean addedv2 = false;
+    public boolean addEdge(int rv1, int rv2) { // the r is for raw
+      boolean av1 = false;
+      boolean av2 = false;
+      Integer v1 = new Integer(rv1);
+      Integer v2 = new Integer(rv2);
+      if (!graph[v1].contains(v2)) {
+        graph[v1].add(v2);
+        av2 = true;
+      }
+      if (!graph[v2].contains(v1)) {
+        graph[v1].add(v1);
+        av1 = true;
+      }
+      assert (av1&&av2) || !(av1||av2) : "Tried to add vertices " + v1 + " and " + v2;
 
-      // add v2 to v1's adjacency list
-      for (int i = 0; i < vertices; i++) {
-        if (graph[v1][i] == -1) {
-          graph[v1][i] = v2;
-          addedv1 = true;
-          break;
-        }
-      }
-      // add v1 to v2's adjacency list
-      for (int i = 0; i < vertices; i++) {
-        if (graph[v2][i] == -1) {
-          graph[v2][i] = v1;
-          addedv2 = true;
-          break;
-        }
-      }
-      assert((addedv2 == false && addedv1 == false) || (addedv2 == true && addedv1 ==  true));
-      return addedv2 && addedv1;
+      return av1 && av2;
     }
+    public int numVertices() { return vertices; }
 }
 
   public static Graph BuildNinePuzzle() {
