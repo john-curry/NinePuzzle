@@ -1,14 +1,3 @@
-/*  1 2 3
-    4 0 5
-    6 7 8
-   
-   And a solved board is
-   
-    1 2 3
-    4 5 6
-    7 8 0
-*/   
-
 import java.util.*;
 import java.io.File;
 import java.lang.Integer;
@@ -64,7 +53,7 @@ public class NinePuzzle{
 
     // mark adjacent vertices as vertices we have to visit if we havent visited them yet
     for (int i : g.adjacencyList(vertex)) {
-      yettovisit.add(i);
+      if(!visited[vertex]) yettovisit.add(i);
     }
 
     // if there are no more nodes to visit, search is over with a negative result
@@ -212,8 +201,12 @@ static class Graph {
     private ArrayList<ArrayList<Integer>> graph;
 
     public Graph(int v) { 
+      assert v > 0 : "number of vertices should not be non-zero";
       vertices = v;
       graph = new ArrayList<ArrayList<Integer>>(v);
+      for (int i = 0; i < v; i++) {
+        graph.add(new ArrayList<Integer>());
+      }
 
     }
 
@@ -274,12 +267,13 @@ static class Graph {
           if (board[i][j] == 0) px = i; py = j; 
         }
       }
-      assert(px != -1 || py != -1);
+      assert(px > -1 && py > -1) : "position of the zero should non-negative:" + px + " " + py;
+      assert(px < 3 && py < 3) : "position of the zero should be less then 3: " + px + " " + py;
 
       if (px > 0) ninegraph.addEdge(v, getIndexFromBoard(swap(px - 1, py, px, py, board)));
-      if (px < 3) ninegraph.addEdge(v, getIndexFromBoard(swap(px + 1, py, px, py, board)));
+      if (px < 2) ninegraph.addEdge(v, getIndexFromBoard(swap(px + 1, py, px, py, board)));
       if (py > 0) ninegraph.addEdge(v, getIndexFromBoard(swap(px, py - 1, px, py, board)));
-      if (py < 3) ninegraph.addEdge(v, getIndexFromBoard(swap(px, py + 1, px, py, board)));
+      if (py < 2) ninegraph.addEdge(v, getIndexFromBoard(swap(px, py + 1, px, py, board)));
     }
     return ninegraph;
   }

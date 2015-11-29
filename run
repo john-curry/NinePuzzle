@@ -1,3 +1,0 @@
-#!/bin/bash
-java NinePuzzle 10_solvable_boards.txt
-java NinePuzzle 10_unsolvable_boards.txt
