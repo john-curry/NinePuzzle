@@ -6,6 +6,8 @@ public class NinePuzzle{
 
 	//The total number of possible boards is 9! = 1*2*3*4*5*6*7*8*9 = 362880
 	public static final int NUM_BOARDS = 362880;
+  public static final boolean DEBUG = true;
+  public static int nodesVisited = 0;
   public static final int[][] SOLVED = { 
     { 1 , 2 , 3 },    
     { 4 , 5 , 6 },
@@ -28,45 +30,56 @@ public class NinePuzzle{
 
     for (int i = 0; i < NUM_BOARDS; i++) { // two initializations for the price of one!
       nodeTo[i] = -1;
+      visited[i] = false;
     }
 
-		return BFS(b, g, visited, yettovisit, nodeTo);
+		return BFS(b, g, visited, yettovisit, nodeTo, false, false);
 		
 	}
 
 
-  public static boolean BFS(int vertex, Graph g, boolean[] visited, Queue<Integer> yettovisit, int[] nodeTo) {
+  public static boolean BFS(int vertex, Graph g, boolean[] visited, Queue<Integer> yettovisit, int[] nodeTo, boolean found, boolean done) {
+    assert !found && !done : "Should not have done this far. Found: " + found + ". Done: " + done;
     assert visited[vertex] == false : "Already visited vertex " + vertex;
+    nodesVisited++;
     visited[vertex] = true;
 
     // Reminder: Be lazy! Check to make sure you're done before you get started!
     if (vertex == getIndexFromBoard(SOLVED)) {
+      if (DEBUG) System.out.println("The jig is up!");
       // unwind NodeTo
       int prev = nodeTo[vertex];
       while (prev != -1) {
         printBoard(getBoardFromIndex(prev));
         prev = nodeTo[prev];
       }
+      found = true;
+      done = true;
       return true;
     }
 
-
     // mark adjacent vertices as vertices we have to visit if we havent visited them yet
-    for (int i : g.adjacencyList(vertex)) {
-      if(!visited[vertex]) yettovisit.add(i);
+    LinkedHashSet<Integer> alist = g.adjacencyList(vertex);
+    for (int i : alist) {
+      if (!visited[i] && !yettovisit.contains(i)) yettovisit.add(i);
     }
 
     // if there are no more nodes to visit, search is over with a negative result
-    if (yettovisit.peek() == null) return false;
+    if (yettovisit.peek() == null) {
+      done = true;
+      found = false;
+      return false;
+    }
 
     // pop the first element from queue
     int next = yettovisit.remove().intValue();
-    
+
     // mark our path the the next node
     nodeTo[next] = vertex;
 
     // visit the next available node (and back down the rabbit hole we go)
-    return BFS(next, g, visited, yettovisit, nodeTo);
+    if (!found && !done) BFS(next, g, visited, yettovisit, nodeTo, found, done);
+    return found;
   }
 	/*  printBoard(B)
 		Print the given 9-puzzle board. The SolveNinePuzzle method above should
@@ -188,7 +201,7 @@ public class NinePuzzle{
 		}
 		graphNum--;
 		System.out.printf("Processed %d board%s.\n Average Time (seconds): %.2f\n",graphNum,(graphNum != 1)?"s":"",(graphNum>1)?totalTimeSeconds/graphNum:0);
-
+    System.out.println("Visited " + nodesVisited + " nodes.");
 	}
 
 
@@ -197,29 +210,25 @@ static class Graph {
     public static final int row = 3;
     public static final int col = 3;
 
+    private int edgesadded = 0;
     private int vertices;
-    private ArrayList<ArrayList<Integer>> graph;
+    private ArrayList<LinkedHashSet<Integer>> graph;
 
     public Graph(int v) { 
       assert v > 0 : "number of vertices should not be non-zero";
       vertices = v;
-      graph = new ArrayList<ArrayList<Integer>>(v);
+      graph = new ArrayList<LinkedHashSet<Integer>>(v);
       for (int i = 0; i < v; i++) {
-        graph.add(new ArrayList<Integer>());
+        graph.add(new LinkedHashSet<Integer>());
       }
 
     }
 
-    public int[] adjacencyList(int v) {
+    public LinkedHashSet<Integer> adjacencyList(int v) {
       assert (v>0)&&(v<vertices) : "Vertex not in graph.";
-      ArrayList<Integer> alist = graph.get(v);
-      
-      int [] ret = new int[alist.size()];
-      for (int i = 0; i < ret.length; i++) {
-        ret[i] = alist.get(i).intValue();
-      }
-      assert ret.length < vertices : "More vertices in adjacency list then reasonable. Probably duplicates.";
-      return ret;
+      LinkedHashSet<Integer> alist = graph.get(v);
+      assert alist.size() < vertices : "More vertices in adjacency list then reasonable. Probably duplicates.";
+      return alist;
 
     }
 
@@ -227,26 +236,23 @@ static class Graph {
     public boolean addEdge(int rv1, int rv2) { // the r is for raw
       assert rv1 != rv2 : "adding and edge between a vertex and itself";
       assert (rv1 < vertices) && (rv2 < vertices) : "Paranioa is kicking in.";
-      boolean av1 = false;
-      boolean av2 = false;
       Integer v1 = new Integer(rv1);
       Integer v2 = new Integer(rv2);
 
       assert (graph.get(v1) != null) || (graph.get(v2) != null) : "Classic example of defensive programming.";
-
-      if (!graph.get(rv1).contains(v2)) {
-        graph.get(rv1).add(v2);
-        av2 = true;
+      if (graph.get(rv1).contains(v2)) {
+        return false;
       }
-      if (!graph.get(rv2).contains(v1)) {
-        graph.get(rv2).add(v1);
-        av1 = true;
+      if (graph.get(rv2).contains(v1)) {
+        return false;
       }
-      assert (av1&&av2) || !(av1||av2) : "Tried to add vertices " + v1 + " and " + v2;
-
-      return av1 && av2;
+      assert !graph.get(rv1).contains(v2) && !graph.get(rv2).contains(v1): "Adding duplicate vertices";
+      graph.get(rv1).add(v2);
+      graph.get(rv2).add(v1);
+      return true;
     }
     public int numVertices() { return vertices; }
+    public int edgesAdded() { return edgesadded; }
 }
 
   public static Graph BuildNinePuzzle() {
