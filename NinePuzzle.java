@@ -7,6 +7,7 @@ public class NinePuzzle{
 	//The total number of possible boards is 9! = 1*2*3*4*5*6*7*8*9 = 362880
 	public static final int NUM_BOARDS = 362880;
   public static final boolean DEBUG = true;
+  public static final boolean DEBUG_L2 = true;
   public static int nodesVisited = 0;
   public static final int[][] SOLVED = { 
     { 1 , 2 , 3 },    
@@ -50,6 +51,7 @@ public class NinePuzzle{
       // unwind NodeTo
       int prev = nodeTo[vertex];
       while (prev != -1) {
+        assert NinePuzzle.isConnected(prev, nodeTo[prev]) : "nodeTo should contain connected nodes but it does not.";
         printBoard(getBoardFromIndex(prev));
         prev = nodeTo[prev];
       }
@@ -61,7 +63,11 @@ public class NinePuzzle{
     // mark adjacent vertices as vertices we have to visit if we havent visited them yet
     LinkedHashSet<Integer> alist = g.adjacencyList(vertex);
     for (int i : alist) {
-      if (!visited[i] && !yettovisit.contains(i)) yettovisit.add(i);
+      if (!visited[i] && !yettovisit.contains(i)) {
+        yettovisit.add(i);
+        nodeTo[i] = vertex;
+        assert isConnected(i, vertex): "Should only add vertices to yettovisit if they are connected.";
+      }
     }
 
     // if there are no more nodes to visit, search is over with a negative result
@@ -73,9 +79,6 @@ public class NinePuzzle{
 
     // pop the first element from queue
     int next = yettovisit.remove().intValue();
-
-    // mark our path the the next node
-    nodeTo[next] = vertex;
 
     // visit the next available node (and back down the rabbit hole we go)
     if (!found && !done) BFS(next, g, visited, yettovisit, nodeTo, found, done);
@@ -231,9 +234,10 @@ static class Graph {
       return alist;
 
     }
-
+    
     // returns false if edge already exists
     public boolean addEdge(int rv1, int rv2) { // the r is for raw
+      assert NinePuzzle.isConnected(rv1, rv2) : "You are trying to add edges that are not connected";
       assert rv1 != rv2 : "adding and edge between a vertex and itself";
       assert (rv1 < vertices) && (rv2 < vertices) : "Paranioa is kicking in.";
       Integer v1 = new Integer(rv1);
@@ -255,6 +259,53 @@ static class Graph {
     public int edgesAdded() { return edgesadded; }
 }
 
+  // determines whether or not two vertices should be connected or not
+  // only two spaces in the board should be different
+  // and they should be right next to each other
+  public static boolean isConnected(int v1, int v2) {
+    int [][] b1 = getBoardFromIndex(v1);
+    int [][] b2 = getBoardFromIndex(v2);
+    int diffcounter = 0;
+    for (int i = 0; i < b1.length; i++) {
+      for (int j = 0; j < b2.length; j++) {
+        if (b1[i][j] != b2[i][j]) {
+          diffcounter++;
+        }
+      }
+    }
+    if (diffcounter > 2) return false;
+    if (diffcounter < 2) return false;
+    if (diffcounter == 2) {
+      int x1 = -1;
+      int x2 = -1;
+      int y1 = -1;
+      int y2 = -1;
+
+      for (int i = 0; i < b1.length; i++) {
+        for (int j = 0; j < b2.length; j++) {
+          if (b1[i][j] != b2[i][j]) {
+            if (x1 == -1 && y1 == -1) {
+              x1 = i; y1 = j;
+            }
+            if (x1 != -1 && y1 != -1) {
+              x2 = i; y2 = j;
+            }
+          }
+        }
+      }
+      assert (x1 != -1 && x2 != -1 && y1 != -1 && y2 != -1) : "Position of vertices should be greater then -1.";
+
+      if ((b1[x1][y1] == 0)^(b1[x2][y2] == 0)) return false;
+      if ((b2[x1][y1] == 0)^(b2[x2][y2] == 0)) return false; 
+      if ((b1[x1][y1] == 0)^(b2[x1][y1] == 0)) return false; 
+      if ((b1[x2][y2] == 0)^(b2[x2][y2] == 0)) return false; 
+
+      if (!((x1 == x2)^(y1 == y2))) return false;
+      if (Math.abs(x1 - x2) > 1 || Math.abs(y1 - y2) > 1) return false;
+    }
+    return true;
+  }
+    
   public static Graph BuildNinePuzzle() {
 
     Graph ninegraph = new Graph(NUM_BOARDS);  
@@ -281,6 +332,13 @@ static class Graph {
       if (py > 0) ninegraph.addEdge(v, getIndexFromBoard(swap(px, py - 1, px, py, board)));
       if (py < 2) ninegraph.addEdge(v, getIndexFromBoard(swap(px, py + 1, px, py, board)));
     }
+    if (DEBUG_L2) {
+      for (int i = 0; i < NUM_BOARDS; i++) {
+        for (Integer j : ninegraph.adjacencyList(i)) {
+          assert isConnected(i,j.intValue()): "Vertex " + i + " should not be connected to vertex " + j.intValue();
+        }
+      }
+    }
     return ninegraph;
   }
   // =========== swap ===========================================================
@@ -299,6 +357,7 @@ static class Graph {
             board[i][j] = b[i][j];
           }
         }
+        assert isConnected(getIndexFromBoard(b), getIndexFromBoard(board)) : "Boards that are next to each other should be connected";
         return board;
   }
 }
