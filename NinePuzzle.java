@@ -6,7 +6,7 @@ public class NinePuzzle{
 
 	//The total number of possible boards is 9! = 1*2*3*4*5*6*7*8*9 = 362880
 	public static final int NUM_BOARDS = 362880;
-  public static final boolean DEBUG    = true;
+  public static final boolean DEBUG    = false;
   public static final boolean DEBUG_L2 = false;
   public static int nodesVisited = 0;
   public static int addedEdges = 0;
@@ -61,63 +61,6 @@ public class NinePuzzle{
       return false;
     }
 
-
-    public static boolean BFS(int vertex, Graph g, boolean[] visited, Queue<Integer> yettovisit, int[] nodeTo) {
-      assert visited[vertex] == false : "Already visited vertex " + vertex;
-      nodesVisited++;
-      visited[vertex] = true;
-
-      if (DEBUG) { System.out.println("Visiting board:"); }
-      if (DEBUG) NinePuzzle.printBoard(getBoardFromIndex(vertex));
-
-      // Reminder: Be lazy! Check to make sure you're done before you get started!
-      if (vertex == getIndexFromBoard(SOLVED)) {
-
-        // unwind NodeTo
-        int prev = nodeTo[vertex];
-
-        while (prev != -1) {
-          //assert NinePuzzle.isConnected(prev, nodeTo[prev]) : "nodeTo should contain connected nodes but it does not.";
-          printBoard(getBoardFromIndex(prev));
-          prev = nodeTo[prev];
-        }
-        return true;
-      }
-
-      // mark adjacent vertices as vertices we have to visit if we havent visited them yet
-      LinkedHashSet<Integer> alist = g.adjacencyList(vertex);
-
-      if (DEBUG) { System.out.println("Adding boards:"); }
-
-      boolean hasaddedvertex = false;
-      for (Integer I : alist) {
-        int i = I.intValue();
-        if (DEBUG) NinePuzzle.printBoard(getBoardFromIndex(i));
-        if (!visited[i] && !yettovisit.contains(i)) {
-          if (!(i == vertex)) {
-            hasaddedvertex = true;
-            yettovisit.add(i);
-            nodeTo[i] = vertex;
-          }
-        }
-      }
-
-      if (!hasaddedvertex) {
-        return false;
-      }
-
-      // if there are no more nodes to visit, search is over with a negative result
-      if (yettovisit.peek() == null) {
-        return false;
-      }
-      boolean found = false;
-      // visit all the node 
-      while (!visited[yettovisit.peek()] && yettovisit.peek() != null && found != true) {
-        found = BFS(yettovisit.remove().intValue(), g, visited, yettovisit, nodeTo);
-      }
-      return found;
-
-    }
     /*  printBoard(B)
       Print the given 9-puzzle board. The SolveNinePuzzle method above should
       use this method when printing the sequence of moves which solves the input
@@ -277,8 +220,6 @@ public class NinePuzzle{
       assert (rv1 < vertices) && (rv2 < vertices) : "Paranioa is kicking in.";
       Integer v1 = new Integer(rv1);
       Integer v2 = new Integer(rv2);
-      //if (DEBUG_L2) NinePuzzle.printBoard(NinePuzzle.getBoardFromIndex(rv1));
-      //if (DEBUG_L2) NinePuzzle.printBoard(NinePuzzle.getBoardFromIndex(rv2));
 
       assert (graph.get(v1) != null) || (graph.get(v2) != null) : "Classic example of defensive programming.";
       graph.get(rv1).add(v2);
@@ -463,29 +404,5 @@ public class NinePuzzle{
       }
     }
     return ninegraph;
-  }
-  // =========== swap ===========================================================
-  // swap two places in a board
-  // copies everything else
-  // ============================================================================
-  public static int[][] swap(int x1, int y1, int x2, int y2, int[][] b) {
-        int[][] board = new int[3][3];
-        board[x2][y2] = b[x1][y1];
-        board[x1][y1] = b[x2][y2];
-
-        for (int i = 0; i < 3; i++) {
-          for (int j = 0; j < 3; j++) {
-            if (i == x1 && j == y1) continue;
-            if (i == x2 && j == y2) continue;
-            board[i][j] = b[i][j];
-          }
-        }
-        if (!isConnected(getIndexFromBoard(b), getIndexFromBoard(board))) { 
-          System.out.println("Trouble swapping vertices");
-          if (DEBUG_L2) NinePuzzle.printBoard(b);
-          if (DEBUG_L2) NinePuzzle.printBoard(board);
-          throw new RuntimeException("Boards that are next to each other should be connected");
-        }
-        return board;
   }
 }
